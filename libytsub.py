@@ -1,7 +1,12 @@
 import re
 import subprocess
 import sys
-import webvtt
+import yt_dlp
+import os
+import glob
+import time
+import pycountry
+import logging
 
 def process_vtt_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -41,41 +46,35 @@ def process_vtt_file(file_path):
 
     return srt_file_path
 
-def vtt_to_text(vtt_filename, output_filename):
-    captions = webvtt.read(vtt_filename)
-    unique_lines = []
 
-    for caption in captions:
-        line = caption.text.strip()
-        num_of_lines = len(line.split('\n'))  # 줄 개수 확인
-
-        if num_of_lines <= 1: 
-            # 중복 line 검사를 위해 unique_lines의 마지막 3개 요소를 검사
-            recent_lines = unique_lines[-3:]
-            if line not in recent_lines:
-                unique_lines.append(line)
-
-    with open(output_filename, 'w', encoding='utf-8') as output_file:
-        for line in unique_lines:
-            output_file.write(line + '\n')
-            
 def download_auto_subtitles(video_url):
-    subprocess.run(['yt-dlp',
-                    '--sub-lang',
-                    'ko',
-                    '--write-auto-sub',
-                    # '--write-sub',
-                    '--output',
-                    'yt-dlp',
-                    '--skip-download',
-                    video_url])
+    ydl_opts = {
+        'skip_download': True,
+        'subtitlesformat': 'vtt',
+        'subtitleslangs': 'ko',
+        'writeautomaticsub': False,
+        'writesubtitles': True
+        #'nopart': True,
+        #'updatetime': True,
+        #'nooverwrites': True
+        #'logger': logger
+    }
+
+
+    timestamp = int(time.time())
+    #ydl_opts['outtmpl'] = os.path.join(downloads_dir, f'subtitles-%(id)s-{timestamp}.%(ext)s')
+    
+    print(ydl_opts)
+    
+    ydl = yt_dlp.YoutubeDL(ydl_opts)
+    ydl.download([video_url])
 
 def main(video_url):
     download_auto_subtitles(video_url)
 
     vtt_file_path = 'yt-dlp.ko.vtt'  # yt-dlp가 생성한 vtt 파일 경로
     srt_file_path = process_vtt_file(vtt_file_path)
-    vtt_to_text(vtt_file_path,"vtt_to_text.text")
+
     print(f'순수한 한글 자막이 생성되었습니다: {srt_file_path}')
 
 if __name__ == '__main__':
